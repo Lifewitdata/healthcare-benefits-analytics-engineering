@@ -4,7 +4,7 @@ A SQL + dbt analytics engineering project — built on **DuckDB** (a local,
 embedded SQL warehouse) so anyone can clone this repo and run the full
 pipeline with zero cloud credentials.
 
-> **Synthetic data notice:** All data is generated to mirror the structure of
+> **data notice:** All data is generated to mirror the structure of
 > a real B2B mental-health-benefits program. No real member or clinical data
 > is used.
 
