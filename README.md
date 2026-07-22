@@ -123,7 +123,6 @@ dbt_project/
 
 data/                                # source CSVs (also copied into seeds/)
 scripts/
-└── 01_generate_data.R               # regenerates the synthetic dataset
 ```
 
 ---
