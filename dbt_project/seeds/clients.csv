@@ -1,0 +1,13 @@
+"client_id","client_name","industry","employee_count","plan_tier","contract_start_date","sessions_per_member_allowance"
+"CL001","Client_A","Tech",2151,"Enhanced",2024-01-10,8
+"CL002","Client_B","Tech",655,"Enhanced",2024-07-20,8
+"CL003","Client_C","Tech",4842,"Enhanced",2024-08-04,8
+"CL004","Client_D","Retail",358,"Premium",2024-06-02,12
+"CL005","Client_E","Manufacturing",1082,"Premium",2024-05-16,12
+"CL006","Client_F","Finance",1126,"Enhanced",2024-02-06,8
+"CL007","Client_G","Healthcare",623,"Enhanced",2024-03-21,8
+"CL008","Client_H","Healthcare",1412,"Essential",2024-08-14,4
+"CL009","Client_I","Healthcare",642,"Essential",2024-01-26,4
+"CL010","Client_J","Tech",212,"Essential",2024-01-09,4
+"CL011","Client_K","Healthcare",1156,"Essential",2024-09-09,4
+"CL012","Client_L","Healthcare",2534,"Premium",2024-01-03,12

@@ -1,0 +1,110 @@
+version: 2
+
+models:
+  - name: dim_clients
+    description: Dimension table -- 1 row per employer client.
+    columns:
+      - name: client_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: industry
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Tech','Retail','Healthcare','Finance','Manufacturing']
+      - name: plan_tier
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Essential','Enhanced','Premium']
+
+  - name: dim_members
+    description: Dimension table -- 1 row per member.
+    columns:
+      - name: member_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: client_id
+        description: Foreign key to dim_clients.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_clients')
+              field: client_id
+
+  - name: dim_assessments
+    description: >
+      Static reference dimension describing the two clinical assessment
+      instruments (PHQ-9, GAD-7). Per-member score data lives in
+      fact_member_journey, not here -- this table is instrument metadata
+      only.
+    columns:
+      - name: assessment_type
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+          - accepted_values:
+              values: ['PHQ-9','GAD-7']
+
+  - name: dim_dates
+    description: >
+      Date dimension spanning the full range of dates present in the
+      source data, built dynamically (not hardcoded).
+    columns:
+      - name: date_day
+        description: Primary key. One row per calendar day.
+        tests:
+          - unique
+          - not_null
+
+  - name: fact_sessions
+    description: >
+      Transaction fact table -- 1 row per session (session grain, the most
+      granular level available).
+    columns:
+      - name: session_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: member_id
+        description: Foreign key to dim_members.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_members')
+              field: member_id
+      - name: session_date
+        tests:
+          - not_null
+
+  - name: fact_member_journey
+    description: >
+      Primary business-ready fact table -- 1 row per member. Intentionally
+      wide: combines funnel progression, session/cost aggregates, and
+      clinical outcome changes (PHQ-9 & GAD-7) so client-facing dashboards
+      can query a single table. This is the mart that
+      fct_client_scorecard and the reporting layer build on top of.
+    columns:
+      - name: member_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: client_id
+        description: Foreign key to dim_clients.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_clients')
+              field: client_id
+      - name: utilization_rate
+        description: total_sessions / sessions_per_member_allowance.
+      - name: furthest_stage_reached
+        tests:
+          - not_null

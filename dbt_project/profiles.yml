@@ -1,0 +1,7 @@
+modern_health_roi:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: '{{ env_var("DBT_DUCKDB_PATH", "modern_health.duckdb") }}'
+      threads: 4

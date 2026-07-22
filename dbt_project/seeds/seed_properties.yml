@@ -1,0 +1,133 @@
+version: 2
+
+seeds:
+  - name: clients
+    description: >
+      Raw employer client data — one row per contracted company.
+      Loaded as a dbt seed since this is a small, static extract.
+    columns:
+      - name: client_id
+        description: Primary key. Unique identifier for each employer client.
+        tests:
+          - unique
+          - not_null
+      - name: client_name
+        tests:
+          - not_null
+      - name: industry
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Tech','Retail','Healthcare','Finance','Manufacturing']
+      - name: plan_tier
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Essential','Enhanced','Premium']
+      - name: employee_count
+        tests:
+          - not_null
+      - name: sessions_per_member_allowance
+        tests:
+          - not_null
+
+  - name: members
+    description: Raw member (employee) data — one row per enrolled employee.
+    columns:
+      - name: member_id
+        description: Primary key. Unique identifier for each member.
+        tests:
+          - unique
+          - not_null
+      - name: client_id
+        description: Foreign key to clients.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('clients')
+              field: client_id
+      - name: department
+        tests:
+          - not_null
+      - name: enrollment_date
+        tests:
+          - not_null
+
+  - name: sessions
+    description: Raw session-level data — one row per coaching/therapy/psychiatry visit.
+    columns:
+      - name: session_id
+        description: Primary key. Unique identifier for each session.
+        tests:
+          - unique
+          - not_null
+      - name: member_id
+        description: Foreign key to members.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('members')
+              field: member_id
+      - name: session_type
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Coaching','Therapy','Psychiatry']
+      - name: cost_usd
+        tests:
+          - not_null
+
+  - name: assessments
+    description: >
+      Raw clinical assessment data (PHQ-9 / GAD-7) — one row per assessment
+      administration. Only present for members who reached the "assessed"
+      journey stage.
+    columns:
+      - name: assessment_id
+        description: Primary key. Unique identifier for each assessment record.
+        tests:
+          - unique
+          - not_null
+      - name: member_id
+        description: Foreign key to members.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('members')
+              field: member_id
+      - name: assessment_type
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['PHQ-9','GAD-7']
+      - name: timepoint
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['baseline','follow_up']
+      - name: score
+        tests:
+          - not_null
+
+  - name: member_journey
+    description: >
+      Raw member journey/funnel data — one row per member, tracking
+      progression through enrollment, invitation, first session scheduling,
+      first session completion, sustained engagement, and assessment
+      completion. This is the backbone of the client-facing journey dashboard.
+    columns:
+      - name: member_id
+        description: Primary key. Unique identifier for each member.
+        tests:
+          - unique
+          - not_null
+      - name: client_id
+        description: Foreign key to clients.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('clients')
+              field: client_id
+      - name: enrolled_date
+        tests:
+          - not_null

@@ -1,0 +1,111 @@
+version: 2
+
+models:
+  - name: stg_clients
+    description: >
+      Cleaned, 1:1 staging model for employer clients. Standardizes text
+      casing and enforces types. No business logic.
+    columns:
+      - name: client_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: industry
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Tech','Retail','Healthcare','Finance','Manufacturing']
+      - name: plan_tier
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Essential','Enhanced','Premium']
+
+  - name: stg_members
+    description: Cleaned, 1:1 staging model for members.
+    columns:
+      - name: member_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: client_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_clients')
+              field: client_id
+
+  - name: stg_sessions
+    description: Cleaned, 1:1 staging model for sessions.
+    columns:
+      - name: session_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: member_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_members')
+              field: member_id
+      - name: session_type
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Coaching','Therapy','Psychiatry']
+      - name: cost_usd
+        description: Session cost in USD, rounded to 2 decimal places.
+        tests:
+          - not_null
+
+  - name: stg_assessments
+    description: Cleaned, 1:1 staging model for PHQ-9/GAD-7 assessments.
+    columns:
+      - name: assessment_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: member_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_members')
+              field: member_id
+      - name: assessment_type
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['PHQ-9','GAD-7']
+      - name: timepoint
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['baseline','follow_up']
+      - name: score
+        description: Clinical score, defensively capped to valid instrument range.
+        tests:
+          - not_null
+
+  - name: stg_member_journey
+    description: >
+      Cleaned, 1:1 staging model for the member journey funnel. One row per
+      member; boolean flags mark progression through each funnel stage.
+    columns:
+      - name: member_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: client_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_clients')
+              field: client_id
+      - name: enrolled_date
+        tests:
+          - not_null

@@ -1,0 +1,79 @@
+version: 2
+
+models:
+  - name: rpt_kpi_summary
+    description: >
+      Org-wide, single-row KPI scorecard for a top-level dashboard header.
+    columns:
+      - name: total_clients
+        tests:
+          - not_null
+      - name: total_members
+        tests:
+          - not_null
+      - name: journey_completion_rate
+        description: Share of all enrolled members who reached the "Assessed" funnel stage.
+        tests:
+          - not_null
+
+  - name: rpt_client_scorecard
+    description: >
+      Per-client business scorecard -- cost, utilization, and clinical
+      improvement, with rank columns for easy top-N filtering in a BI tool.
+    columns:
+      - name: client_id
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('dim_clients')
+              field: client_id
+      - name: utilization_rank
+        tests:
+          - not_null
+
+  - name: rpt_industry_summary
+    description: Cost and utilization rolled up by industry.
+    columns:
+      - name: industry
+        tests:
+          - unique
+          - not_null
+
+  - name: rpt_provider_utilization
+    description: >
+      Session volume and cost by service type (Coaching/Therapy/Psychiatry),
+      used as a proxy for "provider type" in this dataset.
+    columns:
+      - name: session_type
+        tests:
+          - unique
+          - not_null
+          - accepted_values:
+              values: ['Coaching','Therapy','Psychiatry']
+
+  - name: rpt_member_engagement
+    description: Member-level engagement segmentation for "most engaged members" reporting.
+    columns:
+      - name: member_id
+        tests:
+          - unique
+          - not_null
+      - name: engagement_tier
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Never Engaged','Low Engagement','Engaged','Highly Engaged']
+
+  - name: rpt_funnel_summary
+    description: >
+      Journey funnel conversion counts and rates, by client plus an
+      'ALL CLIENTS' overall row. Powers the funnel-chart visualization on
+      the client-facing member journey dashboard.
+    columns:
+      - name: client_name
+        tests:
+          - not_null
+      - name: n_enrolled
+        tests:
+          - not_null

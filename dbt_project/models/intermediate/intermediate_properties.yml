@@ -1,0 +1,80 @@
+version: 2
+
+models:
+  - name: int_member_session_agg
+    description: >
+      Member-grain aggregation of session data. One row per member who has
+      at least one session. Includes a derived dominant_modality field
+      (the care type each member attended most).
+    columns:
+      - name: member_id
+        description: Primary key at this grain.
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('stg_members')
+              field: member_id
+      - name: total_sessions
+        tests:
+          - not_null
+      - name: dominant_modality
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Coaching','Therapy','Psychiatry']
+
+  - name: int_session_sequence
+    description: >
+      Session-grain model with each member's sessions numbered
+      chronologically, plus the gap in days since their previous session.
+    columns:
+      - name: session_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: session_number
+        tests:
+          - not_null
+
+  - name: int_assessment_pivoted
+    description: >
+      Member + instrument grain (one row per member per PHQ-9/GAD-7).
+      Pivots baseline and follow-up scores into columns and computes
+      score change and improvement flag.
+    columns:
+      - name: member_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_members')
+              field: member_id
+      - name: assessment_type
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['PHQ-9','GAD-7']
+      - name: baseline_score
+        tests:
+          - not_null
+
+  - name: int_journey_enriched
+    description: >
+      Member-grain journey funnel enriched with stage-to-stage timing
+      metrics and a single furthest_stage_reached classification.
+    columns:
+      - name: member_id
+        description: Primary key.
+        tests:
+          - unique
+          - not_null
+      - name: funnel_stage_number
+        description: Ordinal 1-5 representing furthest funnel stage reached.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5]
+      - name: furthest_stage_reached
+        tests:
+          - not_null

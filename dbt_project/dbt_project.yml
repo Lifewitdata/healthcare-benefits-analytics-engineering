@@ -1,0 +1,61 @@
+name: 'modern_health_roi'
+version: '1.0.0'
+config-version: 2
+
+profile: 'modern_health_roi'
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+analysis-paths: ["analyses"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Materialization strategy by layer:
+# staging      -> view   (cheap, always reflects latest seed/source data)
+# intermediate -> view   (business logic, not queried directly by BI tools)
+# marts/core   -> table  (dimensional model, BI tools need fast reads)
+# marts/reporting -> table (pre-aggregated, client-facing reporting marts)
+models:
+  modern_health_roi:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+    marts:
+      core:
+        +materialized: table
+        +schema: core
+      reporting:
+        +materialized: table
+        +schema: reporting
+
+seeds:
+  modern_health_roi:
+    +schema: raw
+    clients:
+      +column_types:
+        contract_start_date: date
+    members:
+      +column_types:
+        enrollment_date: date
+    sessions:
+      +column_types:
+        session_date: date
+    assessments:
+      +column_types:
+        assessment_date: date
+    member_journey:
+      +column_types:
+        enrolled_date: date
+        invited_date: date
+        scheduled_date: date
+        first_completed_date: date
+        engaged_date: date
+        assessed_date: date
