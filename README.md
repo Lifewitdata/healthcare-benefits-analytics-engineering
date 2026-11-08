@@ -1,158 +1,231 @@
-# Modern Health: Client-Facing ROI & Member Journey Dashboard
+# Healthcare Data Integration & Population Health Analytics
 
-A SQL + dbt analytics engineering project — built on **DuckDB** (a local,
-embedded SQL warehouse) so anyone can clone this repo and run the full
-pipeline with zero cloud credentials.
+[![Analytics Engineering CI](https://github.com/Lifewitdata/healthcare-benefits-analytics-engineering/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Lifewitdata/healthcare-benefits-analytics-engineering/actions)
 
-> **data notice:** All data is generated to mirror the structure of
-> a real B2B mental-health-benefits program. No real member or clinical data
-> is used.
+A reproducible healthcare analytics engineering portfolio project demonstrating healthcare data integration, data quality, warehouse modelling, population health insights and cost/utilisation reporting.
 
----
+> **Data and privacy notice:** All included records are generated demonstration data. No real patient, member or clinical records are used. This is not a production clinical system and does not claim HIPAA certification, FHIR conformance or live EHR connectivity.
 
-## What This Project Demonstrates
+## Business problem
 
-- A complete dbt project: **seeds → staging → intermediate → marts (core +
-  reporting)**
-- A proper **star schema** (`dim_clients`, `dim_members`, `dim_assessments`,
-  `dim_dates`, `fact_sessions`, `fact_member_journey`)
-- **129 dbt tests** across every layer (`unique`, `not_null`,
-  `accepted_values`, `relationships`)
-- A custom **macro** (`title_case`), written to solve a real problem (DuckDB
-  has no `initcap`), not added for show
-- **Window functions** (`ROW_NUMBER`, `LAG`, `RANK`), **CTEs**, conditional
-  aggregation **pivots**, and `UNION ALL` grand-total patterns
-- Six **business-ready reporting marts** answering the exact KPIs and
-  business questions a Modern Health Analytics team would be asked for
+Healthcare customers need to combine information from different operational systems, trust the quality of the resulting data, and use clear reporting to understand population health, service utilisation, member engagement and programme costs.
 
----
+This project demonstrates a small but end-to-end version of that workflow: validate incoming source extracts, load them into a warehouse, transform them into reusable dimensional models, test the results and publish reporting-ready datasets.
+
+## What the solution delivers
+
+- **Multi-source data preparation:** five structured source feeds representing clients, members, service sessions, assessments and member journeys.
+- **Data quality controls:** source contracts for required columns, unique keys, referential integrity, non-negative costs and valid PHQ-9/GAD-7 score ranges.
+- **Healthcare analytics warehouse:** DuckDB with dbt seed, staging, intermediate, core and reporting layers.
+- **Dimensional modelling:** member- and session-grain facts plus reusable dimensions and reporting marts.
+- **Population health reporting:** engagement funnel, follow-up completion, PHQ-9/GAD-7 score movement, utilisation, service mix and cost per member.
+- **Automated validation:** Python tests, dbt tests and GitHub Actions CI.
+- **Reproducible execution:** pinned Python dependencies, Makefile commands and a local warehouse; no cloud credentials required.
 
 ## Architecture
 
+```text
+Healthcare source extracts (CSV demonstration feeds)
+        |
+        v
+Python source data contracts
+  - schema / required fields
+  - primary-key uniqueness
+  - referential integrity
+  - selected domain constraints
+        |
+        v
+dbt seeds -> DuckDB raw layer
+        |
+        v
+Staging models (standardise and type source fields)
+        |
+        v
+Intermediate models
+  - member session aggregation
+  - chronological session sequencing
+  - assessment pivot and score movement
+  - member journey enrichment
+        |
+        v
+Core dimensional marts
+  - dim_clients / dim_members / dim_assessments / dim_dates
+  - fact_sessions / fact_member_journey
+        |
+        v
+Reporting marts
+  - rpt_kpi_summary
+  - rpt_client_scorecard
+  - rpt_industry_summary
+  - rpt_provider_utilization
+  - rpt_member_engagement
+  - rpt_funnel_summary
+        |
+        v
+BI-ready reporting / customer-facing analytical outputs
 ```
-Raw CSVs (data/)
-      │
-      ▼
-  dbt SEED   →  raw schema (5 tables, DuckDB)
-      │
-      ▼
-  STAGING    →  stg_clients, stg_members, stg_sessions,
-                stg_assessments, stg_member_journey
-      │
-      ▼
-  INTERMEDIATE → int_member_session_agg, int_session_sequence,
-                 int_assessment_pivoted, int_journey_enriched
-      │
-      ▼
-  MARTS / CORE     → dim_clients, dim_members, dim_assessments,
-                      dim_dates, fact_sessions, fact_member_journey
-      │
-      ▼
-  MARTS / REPORTING → rpt_kpi_summary, rpt_client_scorecard,
-                       rpt_industry_summary, rpt_provider_utilization,
-                       rpt_member_engagement, rpt_funnel_summary
-```
 
-## Key Finding: The Member Journey Funnel
+## Data sources and grain
 
-```
-Enrolled (2,500) → Scheduled (73.3%) → Completed 1st Session (92.0%)
-→ Engaged/3+ sessions (54.1%) → Assessed (80.4%)
+| Source | Grain | Primary key | Purpose |
+|---|---|---|---|
+| clients.csv | One row per client | client_id | Customer/plan context |
+| members.csv | One row per member | member_id | Enrolment and allowance context |
+| sessions.csv | One row per service session | session_id | Service utilisation and cost |
+| assessments.csv | One row per assessment event | assessment_id | PHQ-9/GAD-7 outcome observations |
+| member_journey.csv | One row per member journey | member_id | Funnel milestones and engagement |
 
-Overall journey completion rate: 29.3%
-```
+The files are generated demonstration data and are not sourced from any real healthcare provider, payer or customer.
 
-**The biggest drop-off is post-first-session** (Completed → Engaged, 54.1%
-conversion) — not enrollment or scheduling. This points to first-session
-experience quality as the highest-leverage intervention point, not top-of-
-funnel awareness.
+## Data quality approach
 
-## Headline KPIs (`rpt_kpi_summary`)
+The pipeline checks data before warehouse transformation. See [Data Contracts](docs/data_contracts.md).
 
-| KPI | Value |
+| Dimension | Example control |
 |---|---|
-| Total Clients | 12 |
-| Total Members | 2,500 |
-| Total Sessions | 7,239 |
-| Total Healthcare Cost | $689,736 |
-| Avg Cost per Member | $275.89 |
-| Overall Utilization Rate | 37.9% |
-| PHQ-9 Improvement Rate | 74.5% |
-| GAD-7 Improvement Rate | 75.8% |
-| Journey Completion Rate | 29.3% |
+| Completeness | Required source columns and non-empty primary keys |
+| Uniqueness | No duplicate declared primary keys |
+| Referential integrity | Member and client foreign keys resolve |
+| Validity | Session costs are non-negative; PHQ-9 range 0–27; GAD-7 range 0–21 |
+| Transformation quality | dbt schema and relationship tests |
+| Reproducibility | Pinned dependencies and CI pipeline |
 
----
+Invalid source data causes the quality step to fail instead of silently proceeding. A production-grade implementation should additionally persist rejected records to a quarantine table with batch metadata and PHI-safe error details.
 
-## How to Run
+## Analytics questions answered
+
+The reporting marts support questions such as:
+
+1. How many members are enrolled, and how does engagement change through the journey?
+2. At which journey stage is the largest member drop-off observed?
+3. How many sessions are delivered by service type and client?
+4. What is the average programme cost per member and the utilisation rate?
+5. What proportion of members with a completed follow-up show a lower PHQ-9 or GAD-7 score than baseline?
+6. How do client scorecards and industry-level measures compare?
+
+**Interpretation guardrails:** a lower follow-up score is a descriptive change, not proof that a programme caused the change. Missing follow-up assessments must remain unknown, not be treated as non-improvement. Cost and utilisation metrics are descriptive and do not establish savings or return on investment without a defensible comparison design.
+
+## Technology
+
+- **SQL and dbt:** modular transformations, tests, macros, dimensional modelling and reporting marts.
+- **DuckDB:** local analytical warehouse.
+- **Python:** source contracts and pipeline execution.
+- **pytest:** automated source-contract tests.
+- **GitHub Actions:** continuous integration.
+- **Tableau / other BI tools:** reporting marts can be consumed by a connected BI tool.
+
+## Quick start
+
+Requires Python 3.10 or newer.
 
 ```bash
-# Install dependencies
-pip install dbt-core dbt-duckdb
+# 1. Clone the repository
+git clone https://github.com/Lifewitdata/healthcare-benefits-analytics-engineering.git
+cd healthcare-benefits-analytics-engineering
 
-# From the dbt_project/ directory
-export DBT_PROFILES_DIR=$(pwd)
+# 2. Create and activate a virtual environment
+python -m venv .venv
+# Windows PowerShell:
+.venv\Scripts\Activate.ps1
+# macOS / Linux:
+source .venv/bin/activate
 
-dbt seed          # load raw CSVs into DuckDB
-dbt run           # build staging -> intermediate -> marts
-dbt test          # run all 129 data quality tests
-dbt docs generate # build the lineage graph + model catalog
-dbt docs serve    # view it in your browser
+# 3. Install pinned dependencies
+python -m pip install -r requirements.txt
+
+# 4. Validate source files
+python scripts/data_quality.py
+
+# 5. Build the complete warehouse and run tests
+python scripts/run_pipeline.py
 ```
 
-This creates a local `modern_health.duckdb` file — the entire warehouse in
-one portable file. Query it directly with any DuckDB client, or point a BI
-tool (Metabase, Evidence, even Tableau via ODBC) at the `main_reporting`
-schema.
+Equivalent Make commands are available:
 
----
-
-## Repository Structure
-
-```
-dbt_project/
-├── seeds/                          # raw CSVs + seed_properties.yml (docs+tests)
-├── models/
-│   ├── staging/                    # stg_* -- 1:1 cleanup, no business logic
-│   ├── intermediate/               # int_* -- aggregation, pivots, enrichment
-│   └── marts/
-│       ├── core/                   # dim_*, fact_* -- the star schema
-│       └── reporting/              # rpt_* -- BI-tool-ready business marts
-├── macros/                         # title_case.sql
-├── dbt_project.yml
-└── profiles.yml                    # local DuckDB connection
-
-data/                                # source CSVs (also copied into seeds/)
-scripts/
+```bash
+make install
+make quality
+make build
+make docs
 ```
 
----
+Run dbt commands directly from the project directory:
 
-## Design Decisions Worth Knowing
+```bash
+cd dbt_project
+dbt seed --full-refresh
+dbt run
+dbt test
+dbt docs generate
+dbt docs serve
+```
 
-- **DuckDB, not a cloud warehouse** — makes this runnable by anyone who
-  clones the repo, no Snowflake/BigQuery account needed. Same SQL/dbt
-  skillset transfers directly to a cloud warehouse.
-- **`dim_assessments` is a reference dimension**, not a per-event log —
-  actual member outcome scores live in `fact_member_journey` (member grain),
-  since that's the natural home for outcome data.
-- **`fact_member_journey` is intentionally wide** — a deliberate "one big
-  table" tradeoff so client dashboards query one table instead of joining
-  four.
-- **"Provider type" is modeled via `session_type`** (Coaching/Therapy/
-  Psychiatry), since no separate provider dimension exists in source data.
+The DuckDB file is created locally and is ignored by Git. The dbt profile reads `DBT_DUCKDB_PATH`; the default file is `modern_health.duckdb`.
 
-## Limitations
+## Repository guide
 
-- Synthetic data — illustrates the analytics engineering method, not real
-  program performance.
-- Small client count (n=12) — client- and industry-level findings are
-  directional, not statistically robust.
-- No incremental models — with this data volume, full-refresh tables are
-  appropriate; a real production version with growing session data would
-  make `fact_sessions` incremental.
+```text
+.
+├── data/                         # Source demonstration CSV files
+├── dbt_project/
+│   ├── seeds/                    # dbt seed inputs and seed tests/docs
+│   ├── models/
+│   │   ├── staging/              # Source standardisation
+│   │   ├── intermediate/         # Reusable business transformations
+│   │   └── marts/
+│   │       ├── core/             # Dimensions and facts
+│   │       └── reporting/        # BI-ready reporting models
+│   ├── macros/                   # Reusable SQL macros
+│   ├── dbt_project.yml
+│   └── profiles.yml
+├── docs/
+│   ├── architecture.md           # Pipeline and warehouse design
+│   └── data_contracts.md         # Source-level quality rules
+├── scripts/
+│   ├── data_quality.py           # Source data contract validation
+│   └── run_pipeline.py           # Reproducible pipeline runner
+├── tests/                        # Python tests
+├── .github/workflows/ci.yml      # Automated validation
+├── Makefile
+├── requirements.txt
+└── README.md
+```
 
----
+## Business and analytical capabilities
 
-*Built as a portfolio project demonstrating SQL + dbt analytics engineering
-best practices, relevant to a Data Analyst role on a healthcare benefits
-Analytics team.*
+| Capability | Implementation in this project |
+|---|---|
+| Build pipelines from multiple healthcare systems | Five source feeds, Python validation and dbt transformation layers |
+| Follow data quality best practices | Source contracts, dbt tests, relationship checks and CI |
+| Build digestible healthcare analytics | KPI, client, industry, provider utilisation, engagement and funnel marts |
+| Understand data warehousing | DuckDB warehouse, dimensional model, facts, dimensions and documented grains |
+
+## Healthcare interoperability and production-readiness boundaries
+
+The project uses a canonical analytical model that could be extended with adapters for healthcare interoperability formats such as HL7 FHIR. These are future integration targets only: the current repository does **not** parse FHIR resources, process HL7 messages, connect to EHR/claims APIs, or provide a terminology service.
+
+A production deployment would require, at minimum:
+
+- Approved source-system interfaces and documented mapping specifications.
+- FHIR/HL7 validation where applicable, code-set governance and identity resolution.
+- Secure secrets management, encryption, access controls and audit logging.
+- PHI minimisation, retention controls, privacy review and HIPAA compliance assessment.
+- Incremental ingestion, schema-drift handling, retry/recovery and batch-level reconciliation.
+- Monitoring for freshness, completeness, duplication, latency and failed records.
+- Formal metric definitions and customer-specific validation.
+
+See [Architecture](docs/architecture.md) for the detailed design and extension path.
+
+## Current limitations
+
+- Demonstration data only; no real EHR, payer or claims feeds.
+- DuckDB is a local warehouse for reproducibility, not a multi-user production platform.
+- The project does not implement FHIR/HL7 ingestion or claim regulatory compliance.
+- No causal inference: descriptive outcome movement must not be represented as programme impact.
+- A production-grade quarantine, orchestration service, dashboard deployment and role-based security layer remain future work.
+
+## Portfolio positioning
+
+**Healthcare Data Integration & Population Health Analytics | Python, SQL, dbt, DuckDB, Data Quality, Dimensional Modelling**
+
+This project is designed to demonstrate the core workflow behind healthcare analytics: preparing data from multiple sources, enforcing quality controls, modelling trusted warehouse datasets and translating them into customer-facing population health and cost insights.
