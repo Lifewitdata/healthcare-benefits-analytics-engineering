@@ -1,0 +1,51 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "demo-patient-001",
+        "gender": "female",
+        "birthDate": "1985-04-12"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Encounter",
+        "id": "demo-encounter-001",
+        "status": "finished",
+        "subject": {
+          "reference": "Patient/demo-patient-001"
+        },
+        "period": {
+          "start": "2025-02-10T09:00:00Z",
+          "end": "2025-02-10T09:30:00Z"
+        }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "id": "demo-observation-001",
+        "status": "final",
+        "subject": {
+          "reference": "Patient/demo-patient-001"
+        },
+        "code": {
+          "coding": [
+            {
+              "code": "44249-1",
+              "display": "PHQ-9 total score"
+            }
+          ]
+        },
+        "effectiveDateTime": "2025-02-10T09:15:00Z",
+        "valueQuantity": {
+          "value": 8,
+          "unit": "score"
+        }
+      }
+    }
+  ]
+}
